@@ -11,7 +11,13 @@ import re
 
 import preprocess as pp
 import training as train
+import sklearn as sk
+# from sklearn import svm
+from scikits.learn import cross_val, datasets, decomposition, svm
+
+
 #import myapp as app
+
 def temp_fucn():
 	url='../samples/train_images/'
 	s_list=sorted(os.listdir(url))
@@ -20,6 +26,7 @@ def temp_fucn():
 		os.rename(url+j,url+str(i))
 		i+=1
 		print (j)
+
 def temp_inv_fucn():
 	url='../samples/train_temp/'
 	print url
@@ -34,11 +41,44 @@ def temp_inv_fucn():
 #		i_uni2=i_uni2[:-1]
 #		print i_uni,i_uni2
 		os.rename(url+j,url+i_uni)
+
+
 def train_svm():
+
+	# Sci Kit SVM
+	clf = svm.SVC(decision_function_shape='ovo')
+	SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
+    decision_function_shape='ovo', degree=3, gamma='auto', kernel='rbf',
+    max_iter=-1, probability=False, random_state=None, shrinking=True,
+    tol=0.001, verbose=False)
+
+
+	lfw_people = datasets.fetch_lfw_people(min_faces_per_person=70, resize=0.4)
+	faces = np.reshape(lfw_people.data, (lfw_people.target.shape[0], -1))
+	train, test = iter(cross_val.StratifiedKFold(lfw_people.target, k=4)).next()
+	X_train, X_test = faces[train], faces[test]
+	y_train, y_test = lfw_people.target[train], lfw_people.target[test]
+
+	# ..
+	# .. dimension reduction ..
+	pca = decomposition.RandomizedPCA(n_components=150, whiten=True)
+	pca.fit(X_train)
+	X_train_pca = pca.transform(X_train)
+	X_test_pca = pca.transform(X_test)
+
+	# ..
+	# .. classification ..
+	clf = svm.SVC(C=5., gamma=0.001)
+	clf.fit(X_train_pca, y_train)
+
+	print 'Score on unseen data: '
+	print clf.score(X_test_pca, y_test)
+
+	# CV2 SVM
 	svm_params = dict( kernel_type = cv2.SVM_RBF,
 	                    svm_type = cv2.SVM_C_SVC,
 	                    C=9.34, gamma=15.68 )
-	svm=cv2.SVM()
+	svm=cv2.SVM()#replace with scikit
 	label_list=[]
 	label_list.append('a')
 	url='train_images/'
@@ -47,7 +87,8 @@ def train_svm():
 	label = 0
 	for i in s_list:
 		s_list=glob.glob(url+i+'/*.png')
-		if(len(s_list)>25):
+		# if(len(s_list)>25):
+		if(len(s_list)>500):
 			file=open(url+i+'/utf8',"r")
 			i_uni=file.read()
 			i_uni=i_uni[:-1]
@@ -56,7 +97,11 @@ def train_svm():
 		else:
 			continue
 		print str(label),i,label_list[label],len(s_list)
+		int test=10;
 		for j in s_list:
+			
+			if(!test-=1)
+				break;
 			img=cv2.imread(j,0)
 			img=pp.preprocess(img)
 			f =train.find_feature(img.copy())
@@ -86,6 +131,8 @@ def train_svm():
 	svm.train(samples,responses,params=svm_params)
 	# svm.train_auto(samples,responses,None,None,params=svm_params)
 	svm.save("svm_class.xml")
+
+
 def gen_train_sample(im):
 #	train.classifierclassifier.load('svm_class.xml')
 	img = pp.preprocess(im.copy())
