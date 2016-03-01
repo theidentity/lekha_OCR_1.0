@@ -11,7 +11,14 @@ import re
 
 import preprocess as pp
 import training as train
+import sklearn as sk
+# from sklearn import svm
+from scikits.learn import cross_val, datasets, decomposition, svm,LinearSVC
+from sklearn.multiclass import OutputCodeClassifier
+
+
 #import myapp as app
+
 def temp_fucn():
 	url='../samples/train_images/'
 	s_list=sorted(os.listdir(url))
@@ -20,6 +27,7 @@ def temp_fucn():
 		os.rename(url+j,url+str(i))
 		i+=1
 		print (j)
+
 def temp_inv_fucn():
 	url='../samples/train_temp/'
 	print url
@@ -34,7 +42,97 @@ def temp_inv_fucn():
 #		i_uni2=i_uni2[:-1]
 #		print i_uni,i_uni2
 		os.rename(url+j,url+i_uni)
+
+
+
+# balus code
+def train_scikit_svm():
+	# NOTE FROM SCIT KIT : All classifiers in scikit-learn do multiclass classification out-of-the-box. 
+	# You don’t need to use the sklearn.multiclass module unless you want to experiment with different multiclass strategies.	
+	clf = svm.SVC(decision_function_shape='ovo')
+	SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
+    decision_function_shape='ovo', degree=3, gamma='auto', kernel='rbf',
+    max_iter=-1, probability=False, random_state=None, shrinking=True,
+    tol=0.001, verbose=False)
+
+
+  """
+
+  SVC and NuSVC implement the “one-against-one” approach (Knerr et al., 1990) for multi- class classification. If n_class is the number of classes, then n_class * (n_class - 1) / 2 classifiers are constructed and each one trains data from two classes. To provide a consistent interface with other classifiers, the decision_function_shape option allows to aggregate the results of the “one-against-one” classifiers to a decision function of shape (n_samples, n_classes):
+>>>
+
+>>> X = [[0], [1], [2], [3]]
+>>> Y = [0, 1, 2, 3]
+>>> clf = svm.SVC(decision_function_shape='ovo')
+>>> clf.fit(X, Y) 
+SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
+    decision_function_shape='ovo', degree=3, gamma='auto', kernel='rbf',
+    max_iter=-1, probability=False, random_state=None, shrinking=True,
+    tol=0.001, verbose=False)
+>>> dec = clf.decision_function([[1]])
+>>> dec.shape[1] # 4 classes: 4*3/2 = 6
+6
+>>> clf.decision_function_shape = "ovr"
+>>> dec = clf.decision_function([[1]])
+>>> dec.shape[1] # 4 classes
+4
+
+
+
+"""
+
+	label_list=[]
+	label_list.append('a')
+	url='train_images/'
+	train_set = []
+	s_list=sorted(os.listdir(url))
+	label = 0
+	for i in s_list:
+		s_list=glob.glob(url+i+'/*.png')
+		# if(len(s_list)>25):
+		if(len(s_list)>500):
+			file=open(url+i+'/utf8',"r")
+			i_uni=file.read()
+			i_uni=i_uni[:-1]
+			label_list.append(i_uni)
+			label+=1
+		else:
+			continue
+		print str(label),i,label_list[label],len(s_list)
+		int test=10;
+		for j in s_list:
+			
+			if(!test-=1)
+				break;
+			img=cv2.imread(j,0)
+			img=pp.preprocess(img)
+			f =train.find_feature(img.copy())
+			# print len(f)
+			s = [label,f]
+			train_set.append(s)
+	f=open('label','w')
+	for l in label_list:
+		f.write(l+'\n')
+	f.close()
+
+	shuffle(train_set)
+	f_list = []
+	label = []
+	for t in train_set:
+		label.append(t[0])
+		f_list.append(t[1])
+	samples = np.array(f_list,np.float32)
+	responses = np.array(label,np.float32)
+	print 'auto training initiated'
+	print 'please wait.....'
+	svm.train(samples,responses,params=svm_params)
+	# svm.train_auto(samples,responses,None,None,params=svm_params)
+	svm.save("scikit_svm_class.xml")
+
+
 def train_svm():
+
+	# CV2 SVM
 	svm_params = dict( kernel_type = cv2.SVM_RBF,
 	                    svm_type = cv2.SVM_C_SVC,
 	                    C=9.34, gamma=15.68 )
@@ -47,7 +145,8 @@ def train_svm():
 	label = 0
 	for i in s_list:
 		s_list=glob.glob(url+i+'/*.png')
-		if(len(s_list)>25):
+		# if(len(s_list)>25):
+		if(len(s_list)>500):
 			file=open(url+i+'/utf8',"r")
 			i_uni=file.read()
 			i_uni=i_uni[:-1]
@@ -56,7 +155,11 @@ def train_svm():
 		else:
 			continue
 		print str(label),i,label_list[label],len(s_list)
+		int test=10;
 		for j in s_list:
+			
+			if(!test-=1)
+				break;
 			img=cv2.imread(j,0)
 			img=pp.preprocess(img)
 			f =train.find_feature(img.copy())
@@ -86,6 +189,8 @@ def train_svm():
 	svm.train(samples,responses,params=svm_params)
 	# svm.train_auto(samples,responses,None,None,params=svm_params)
 	svm.save("svm_class.xml")
+
+
 def gen_train_sample(im):
 #	train.classifierclassifier.load('svm_class.xml')
 	img = pp.preprocess(im.copy())
