@@ -43,8 +43,6 @@ def temp_inv_fucn():
 #		print i_uni,i_uni2
 		os.rename(url+j,url+i_uni)
 
-
-
 # balus code
 def train_scikit_svm():
 	# NOTE FROM SCIT KIT : All classifiers in scikit-learn do multiclass classification out-of-the-box. 
